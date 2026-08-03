@@ -408,10 +408,11 @@ questions:
         - variable: texlive_full
           label: Install Full TeX Live Scheme
           description: |
-            When enabled, a helper container will automatically install the full TeX Live
-            scheme (scheme-full) into the persistent storage below.</br>
-            ⚠️ The first launch will take approximately 15 minutes and require ~50 GB of disk space.</br>
-            Subsequent launches will skip the installation and start normally.
+            When enabled, Overleaf will install the full TeX Live scheme (scheme-full)
+            before starting. The installation is stored in the persistent volume below.</br>
+            ⚠️ First launch will take approximately 15–25 minutes (app will appear as starting).</br>
+            Subsequent launches will run a quick update check before starting normally.</br>
+            Disk usage: approximately 50 GB.
           schema:
             type: boolean
             default: false

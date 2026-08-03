@@ -72,18 +72,12 @@
 {% endfor %}
 
 {% if values.storage.texlive_full %}
-{# glob on the volume directly avoids the /usr/local/bin/tlmgr wrapper symlink returned by `which` #}
-{% set texlive_script = "TL_BASE=/texlive-vol; ls ${TL_BASE}/*/bin/*/tlmgr >/dev/null 2>&1 || cp -a /usr/local/texlive/. ${TL_BASE}/; export PATH=$(dirname $(ls ${TL_BASE}/*/bin/*/tlmgr 2>/dev/null | head -1)):${PATH}; tlmgr update --self && tlmgr update --all && tlmgr install scheme-full" %}
-{% set texlive_init = tpl.add_container(values.consts.texlive_init_container_name, "image") %}
-{% do texlive_init.add_caps(["CHOWN", "DAC_OVERRIDE", "SETUID", "SETGID", "FOWNER"]) %}
-{% do texlive_init.healthcheck.disable() %}
-{% do texlive_init.restart.set_policy("no") %}
-{% do texlive_init.add_network(overleaf_net) %}
-{% do texlive_init.set_entrypoint(["/bin/bash", "-c"]) %}
-{% do texlive_init.set_command([texlive_script]) %}
-{% do texlive_init.add_storage("/texlive-vol", values.storage.texlive_data) %}
-{% do c1.add_storage("/usr/local/texlive", values.storage.texlive_data) %}
-{% do c1.depends.add_dependency(values.consts.texlive_init_container_name, "service_completed_successfully") %}
+{# Override entrypoint: update/install TeX Live full scheme then hand off to the normal Phusion startup #}
+{% set tl_script = "TL_BASE=/texlive-data; ls ${TL_BASE}/*/bin/*/tlmgr >/dev/null 2>&1 || cp -a /usr/local/texlive/. ${TL_BASE}/; export PATH=$(dirname $(ls ${TL_BASE}/*/bin/*/tlmgr 2>/dev/null | head -1)):${PATH}; tlmgr update --self || true; tlmgr update --all || true; tlmgr install scheme-full || true; [ -L /usr/local/texlive ] || { mv /usr/local/texlive /usr/local/texlive-orig && ln -s ${TL_BASE} /usr/local/texlive; }; exec /sbin/my_init" %}
+{% do c1.set_entrypoint(["/bin/bash", "-c"]) %}
+{% do c1.set_command([tl_script]) %}
+{% do c1.healthcheck.set_start_period(1800) %}
+{% do c1.add_storage("/texlive-data", values.storage.texlive_data) %}
 {% endif %}
 
 {% if perm_container.has_actions() %}

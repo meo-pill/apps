@@ -19,4 +19,3 @@ consts:
   redis_container_name: redis
   perms_container_name: permissions
   mongo_db: sharelatex
-  texlive_init_container_name: texlive-full-init
