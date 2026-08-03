@@ -71,6 +71,15 @@
   {% do c1.add_storage(store.mount_path, store) %}
 {% endfor %}
 
+{% if values.storage.texlive_full %}
+{# Override entrypoint: update/install TeX Live full scheme then hand off to the normal Phusion startup #}
+{% set tl_script = "TL_BASE=/texlive-data; ls ${TL_BASE}/*/bin/*/tlmgr >/dev/null 2>&1 || cp -a /usr/local/texlive/. ${TL_BASE}/; export PATH=$(dirname $(ls ${TL_BASE}/*/bin/*/tlmgr 2>/dev/null | head -1)):${PATH}; tlmgr update --self || true; tlmgr update --all || true; tlmgr install scheme-full || true; [ -L /usr/local/texlive ] || { mv /usr/local/texlive /usr/local/texlive-orig && ln -s ${TL_BASE} /usr/local/texlive; }; exec /sbin/my_init" %}
+{% do c1.set_entrypoint(["/bin/bash", "-c"]) %}
+{% do c1.set_command([tl_script]) %}
+{% do c1.healthcheck.set_start_period(1800) %}
+{% do c1.add_storage("/texlive-data", values.storage.texlive_data) %}
+{% endif %}
+
 {% if perm_container.has_actions() %}
   {% do perm_container.activate() %}
   {% do c1.depends.add_dependency(values.consts.perms_container_name, "service_completed_successfully") %}
