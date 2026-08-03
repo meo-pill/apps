@@ -72,8 +72,8 @@
 {% endfor %}
 
 {% if values.storage.texlive_full %}
-{# which tlmgr auto-detects the year and arch; PATH injection makes the volume's tlmgr resolve TEXDIR from its own bin location #}
-{% set texlive_script = "TL_BASE=/texlive-vol; ls ${TL_BASE}/*/bin/*/tlmgr >/dev/null 2>&1 || cp -a /usr/local/texlive/. ${TL_BASE}/; ARCH_BIN=$(dirname $(which tlmgr)); export PATH=${TL_BASE}/$(basename $(dirname $(dirname ${ARCH_BIN})))/bin/$(basename ${ARCH_BIN}):${PATH}; tlmgr update --self && tlmgr update --all && tlmgr install scheme-full" %}
+{# glob on the volume directly avoids the /usr/local/bin/tlmgr wrapper symlink returned by `which` #}
+{% set texlive_script = "TL_BASE=/texlive-vol; ls ${TL_BASE}/*/bin/*/tlmgr >/dev/null 2>&1 || cp -a /usr/local/texlive/. ${TL_BASE}/; export PATH=$(dirname $(ls ${TL_BASE}/*/bin/*/tlmgr 2>/dev/null | head -1)):${PATH}; tlmgr update --self && tlmgr update --all && tlmgr install scheme-full" %}
 {% set texlive_init = tpl.add_container(values.consts.texlive_init_container_name, "image") %}
 {% do texlive_init.add_caps(["CHOWN", "DAC_OVERRIDE", "SETUID", "SETGID", "FOWNER"]) %}
 {% do texlive_init.healthcheck.disable() %}
