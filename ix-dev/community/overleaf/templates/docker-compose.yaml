@@ -71,6 +71,21 @@
   {% do c1.add_storage(store.mount_path, store) %}
 {% endfor %}
 
+{% if values.storage.texlive_full %}
+{# One-shot init: first run copies minimal TeX Live then installs scheme-full; subsequent runs just update (~15 min + ~50 GB on first launch) #}
+{% set texlive_script = "TLMGR=$(find /texlive-vol -maxdepth 4 -name 'tlmgr' -type f 2>/dev/null | head -1); if [ -z \"$TLMGR\" ]; then cp -a /usr/local/texlive/. /texlive-vol/ && TLMGR=$(find /texlive-vol -maxdepth 4 -name 'tlmgr' -type f | head -1); fi; $TLMGR update --self && $TLMGR update --all && $TLMGR install scheme-full" %}
+{% set texlive_init = tpl.add_container(values.consts.texlive_init_container_name, "image") %}
+{% do texlive_init.add_caps(["CHOWN", "DAC_OVERRIDE", "SETUID", "SETGID", "FOWNER"]) %}
+{% do texlive_init.healthcheck.disable() %}
+{% do texlive_init.restart.set_policy("no") %}
+{% do texlive_init.add_network(overleaf_net) %}
+{% do texlive_init.set_entrypoint(["/bin/bash", "-c"]) %}
+{% do texlive_init.set_command([texlive_script]) %}
+{% do texlive_init.add_storage("/texlive-vol", values.storage.texlive_data) %}
+{% do c1.add_storage("/usr/local/texlive", values.storage.texlive_data) %}
+{% do c1.depends.add_dependency(values.consts.texlive_init_container_name, "service_completed_successfully") %}
+{% endif %}
+
 {% if perm_container.has_actions() %}
   {% do perm_container.activate() %}
   {% do c1.depends.add_dependency(values.consts.perms_container_name, "service_completed_successfully") %}

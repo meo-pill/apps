@@ -24,7 +24,7 @@ ix_volumes:
   texlive-data: /opt/tests/mnt/overleaf/texlive-data
 
 storage:
-  texlive_full: false
+  texlive_full: true
   texlive_data:
     type: ix_volume
     ix_volume_config:
